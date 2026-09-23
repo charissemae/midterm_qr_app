@@ -1,21 +1,28 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import AppButton from '@/components/AppButton';
 import { COLORS } from '@/constants/colors';
-import { STUDENT_ID } from '@/constants/student';
+//import { STUDENT_ID } from '@/constants/student';
+import { useAuth } from '@/lib/auth';
 import { registerAttendance } from '@/lib/database';
 
 export default function ScanScreen() {
+  const { user } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [lastData, setLastData] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   if (!permission) {
-    return <View style={styles.container} />;
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
   }
 
   if (!permission.granted) {
@@ -38,7 +45,9 @@ export default function ScanScreen() {
   const handleBarcodeScanned = ({ data }: { data: string }) => {
     setScanned(true);
     setLastData(data);
-    registerAttendance(data, STUDENT_ID).then((result) => {
+    //registerAttendance(data, STUDENT_ID).then((result) => {
+    const studentId = user?.id ?? 'unknown';
+    registerAttendance(data, studentId).then((result) => {
       setMessage(result.message);
       setSuccess(result.success);
     });
@@ -48,6 +57,7 @@ export default function ScanScreen() {
     setScanned(false);
     setLastData(null);
     setMessage(null);
+    setCameraError(null);
   };
 
   return (
@@ -57,7 +67,16 @@ export default function ScanScreen() {
         facing="back"
         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+        onMountError={() =>
+          setCameraError('Camera could not start. Close other apps using the camera, then try again.')
+        }
       />
+
+      {cameraError && (
+        <View style={styles.cameraErrorBox}>
+          <Text style={styles.cameraErrorText}>{cameraError}</Text>
+        </View>
+      )}
 
       <View style={styles.overlay}>
         <Text style={styles.overlayText}>
@@ -147,6 +166,22 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: 12,
+  },
+  cameraErrorBox: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    right: 20,
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+  },
+  cameraErrorText: {
+    fontSize: 14,
+    color: '#C62828',
+    textAlign: 'center',
+    fontWeight: '600',
   },
 });
 

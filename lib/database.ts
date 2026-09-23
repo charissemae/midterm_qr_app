@@ -1,3 +1,4 @@
+import { supabase } from './supabase';
 import * as SQLite from 'expo-sqlite';
 
 export type AttendanceRecord = {
