@@ -1,21 +1,12 @@
 import { useState } from 'react';
 import {
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  ActivityIndicator,
-  TouchableWithoutFeedback,
-  Keyboard,
+  StyleSheet, Text, TextInput, View, KeyboardAvoidingView, Platform,
+  ScrollView, ActivityIndicator, TouchableWithoutFeedback, Keyboard,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppButton from '@/components/AppButton';
-import Header from '@/components/Header';
 import { COLORS } from '@/constants/colors';
 import { signIn } from '@/lib/auth';
 
@@ -29,21 +20,16 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     setError(null);
     setLoading(true);
-
     try {
       const { data, error: authError } = await signIn(email.trim(), password);
-
       if (authError) {
         setError(authError.message);
         return;
       }
-
       const session = data?.session;
       const user = data?.user;
-
       if (session) {
         // Wala nay manual navigation dinhi.
-        // Ang root _layout.tsx (Redirect) na ray mag-handle.
       } else if (user) {
         setError('Email not confirmed yet. Please check your inbox and click the confirmation link, then sign in again.');
       } else {
@@ -69,11 +55,11 @@ export default function LoginScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.headerContainer}>
-              <Header title="QR Attendance" />
+            <View style={styles.badgeMark}>
+              <Text style={styles.badgeMarkText}>Q</Text>
             </View>
 
-            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.title}>Welcome back</Text>
             <Text style={styles.subtitle}>Sign in to record your attendance</Text>
 
             <View style={styles.form}>
@@ -105,17 +91,12 @@ export default function LoginScreen() {
               {loading ? (
                 <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
               ) : (
-                <AppButton
-                  theme="primary"
-                  title="Sign In"
-                  icon="log-in-outline"
-                  onPress={handleLogin}
-                />
+                <AppButton theme="primary" title="Sign in" icon="log-in-outline" onPress={handleLogin} />
               )}
             </View>
 
             <Link href="/register" style={styles.link}>
-              Don't have an account? Sign Up
+              Don't have an account? Sign up
             </Link>
           </ScrollView>
         </TouchableWithoutFeedback>
@@ -127,23 +108,27 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   keyboardView: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 },
-  headerContainer: { alignItems: 'center', marginTop: 20, marginBottom: 16 },
-  title: { fontSize: 28, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
-  subtitle: { fontSize: 15, color: COLORS.textSecondary, lineHeight: 21, marginBottom: 32 },
-  form: { marginBottom: 24 },
-  label: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 6, marginTop: 10 },
-  input: {
-    backgroundColor: COLORS.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: COLORS.textPrimary,
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
+    justifyContent: 'center',
   },
-  error: { fontSize: 14, color: COLORS.danger, marginTop: 12, marginBottom: 4 },
+  badgeMark: {
+    width: 44, height: 44, borderRadius: 12, backgroundColor: COLORS.primary,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+  },
+  badgeMarkText: { color: COLORS.textOnPrimary, fontSize: 20, fontWeight: '700' },
+  title: { fontSize: 26, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
+  subtitle: { fontSize: 14, color: COLORS.textSecondary, lineHeight: 20, marginBottom: 28 },
+  form: { marginBottom: 20 },
+  label: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 6, marginTop: 12 },
+  input: {
+    backgroundColor: COLORS.card, borderRadius: 11, borderWidth: 1, borderColor: COLORS.border,
+    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: COLORS.textPrimary,
+  },
+  error: { fontSize: 13.5, color: COLORS.danger, marginTop: 12, marginBottom: 4 },
   loader: { marginVertical: 16 },
-  link: { fontSize: 14, color: COLORS.primary, textAlign: 'center', fontWeight: '600' },
+  link: { fontSize: 13, color: COLORS.primary, textAlign: 'center', fontWeight: '700', marginTop: 4 },
 });

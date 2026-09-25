@@ -73,7 +73,7 @@ export default function TeacherScreen() {
     return (
       <View style={styles.lockedContainer}>
         <Ionicons name="lock-closed-outline" size={56} color={COLORS.textSecondary} />
-        <Text style={styles.lockedTitle}>Teachers Only</Text>
+        <Text style={styles.lockedTitle}>Teachers only</Text>
         <Text style={styles.lockedSubtitle}>
           Only teacher accounts can create events.
         </Text>
@@ -153,12 +153,12 @@ export default function TeacherScreen() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title}>Create Event QR</Text>
+      <Text style={styles.title}>Create event QR</Text>
       <Text style={styles.subtitle}>
         Fill in the event details, then scan the generated QR with the Scan tab.
       </Text>
 
-      <Text style={styles.label}>Event Title</Text>
+      <Text style={styles.label}>Event title</Text>
       <TextInput
         style={styles.input}
         value={title}
@@ -167,7 +167,7 @@ export default function TeacherScreen() {
         placeholderTextColor={COLORS.textSecondary}
       />
 
-      <Text style={styles.label}>Event Code</Text>
+      <Text style={styles.label}>Event code</Text>
       <TextInput
         style={styles.input}
         value={eventId}
@@ -207,7 +207,7 @@ export default function TeacherScreen() {
 
       <AppButton
         theme="primary"
-        title="Create Event"
+        title="Create event"
         icon="add-circle-outline"
         onPress={handleCreateEvent}
       />
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: 4,
   },
@@ -300,15 +300,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: COLORS.textPrimary,
+    color: COLORS.textSecondary,
     marginBottom: 6,
     marginTop: 10,
   },
   input: {
     backgroundColor: COLORS.card,
-    borderRadius: 14,
+    borderRadius: 11,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 14,
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
   },
   pickerField: {
     backgroundColor: COLORS.card,
-    borderRadius: 14,
+    borderRadius: 11,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 14,
@@ -349,8 +349,8 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.primary,
+    fontWeight: '700',
+    color: COLORS.tanDeep,
   },
   hint: {
     fontSize: 12,
@@ -366,18 +366,16 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     textAlign: 'center',
     marginTop: 12,
+    fontWeight: '600',
   },
   resultCard: {
     backgroundColor: COLORS.card,
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     padding: 16,
     marginTop: 20,
     alignItems: 'center',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   resultTitle: {
     fontSize: 15,
@@ -399,6 +397,3 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
-
-
-

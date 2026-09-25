@@ -71,7 +71,7 @@ export default function HistoryScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Attendance History</Text>
+        <Text style={styles.title}>Attendance history</Text>
         <Text style={styles.subtitle}>Loading records...</Text>
       </View>
     );
@@ -81,7 +81,7 @@ export default function HistoryScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.titleRow}>
-          <Text style={styles.title}>Attendance History</Text>
+          <Text style={styles.title}>Attendance history</Text>
           <View style={styles.roleBadge}>
             <Text style={styles.roleBadgeText}>Teacher</Text>
           </View>
@@ -181,7 +181,7 @@ export default function HistoryScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.titleRow}>
-        <Text style={styles.title}>Attendance History</Text>
+        <Text style={styles.title}>Attendance history</Text>
         <View style={styles.roleBadge}>
           <Text style={styles.roleBadgeText}>Student</Text>
         </View>
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: 16,
     flex: 1,
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   roleBadge: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.tan,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   roleBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: COLORS.tanDeep,
   },
   subtitle: {
     fontSize: 14,
@@ -264,13 +264,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     padding: 16,
     marginBottom: 12,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   cardPressed: {
     backgroundColor: COLORS.surface,
@@ -292,13 +289,13 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   countBadge: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: COLORS.primary,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
   countBadgeText: {
-    color: '#FFFFFF',
+    color: COLORS.textOnPrimary,
     fontSize: 13,
     fontWeight: '700',
   },

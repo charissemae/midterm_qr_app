@@ -17,19 +17,18 @@ export default function AppButton({ title, icon, theme, onPress, disabled }: Pro
       <View
         style={[
           styles.buttonOuter,
-          styles.primaryHairline,
+          { borderWidth: 1, borderColor: COLORS.primary, borderRadius: 12 },
           disabled && styles.disabled,
         ]}
       >
         <Pressable
           style={[styles.buttonInner, { backgroundColor: COLORS.primary }]}
           onPress={onPress}
-          
           disabled={disabled}
         >
           <Ionicons
             name={icon}
-            size={22}
+            size={20}
             color={COLORS.textOnPrimary}
             style={styles.icon}
           />
@@ -43,14 +42,10 @@ export default function AppButton({ title, icon, theme, onPress, disabled }: Pro
 
   return (
     <View style={[styles.buttonOuter, disabled && styles.disabled]}>
-      <Pressable
-        style={[styles.buttonInner, styles.secondaryFill]}
-        onPress={onPress}
-        disabled={disabled}
-      >
+      <Pressable style={styles.buttonInner} onPress={onPress} disabled={disabled}>
         <Ionicons
           name={icon}
-          size={22}
+          size={20}
           color={COLORS.textSecondary}
           style={styles.icon}
         />
@@ -66,26 +61,26 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   buttonInner: {
-    borderRadius: 10,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingVertical: 14,
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-  },
-  primaryHairline: {
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    borderRadius: 10,
-  },
-  secondaryFill: {
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 10,
   },
   icon: { paddingRight: 10 },
-  label: { fontSize: 17, fontWeight: '600', color: COLORS.textPrimary },
-  labelPrimary: { fontWeight: '700' },
-  disabled: { opacity: 0.5 },
+  label: {
+    fontSize: 15.5,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  labelPrimary: {
+    fontWeight: '700',
+  },
+  disabled: {
+    opacity: 0.5,
+  },
 });

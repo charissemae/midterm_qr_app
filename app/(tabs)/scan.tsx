@@ -5,7 +5,6 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import AppButton from '@/components/AppButton';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '@/constants/colors';
-//import { STUDENT_ID } from '@/constants/student';
 import { useAuth } from '@/lib/auth';
 import { registerAttendance } from '@/lib/attendance';
 import { useRole } from '@/lib/useRole';
@@ -32,7 +31,7 @@ export default function ScanScreen() {
     return (
       <View style={styles.lockedContainer}>
         <Ionicons name="lock-closed-outline" size={56} color={COLORS.textSecondary} />
-        <Text style={styles.lockedTitle}>Students Only</Text>
+        <Text style={styles.lockedTitle}>Students only</Text>
         <Text style={styles.lockedSubtitle}>
           Scanning is for students. Teachers create events in the Teacher tab.
         </Text>
@@ -51,16 +50,9 @@ export default function ScanScreen() {
   if (!permission.granted) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Camera Permission Needed</Text>
-        <Text style={styles.subtitle}>
-          We need access to your camera to scan QR codes.
-        </Text>
-        <AppButton
-          theme="primary"
-          title="Grant Permission"
-          icon="camera"
-          onPress={requestPermission}
-        />
+        <Text style={styles.title}>Camera permission needed</Text>
+        <Text style={styles.subtitle}>We need access to your camera to scan QR codes.</Text>
+        <AppButton theme="primary" title="Grant permission" icon="camera" onPress={requestPermission} />
       </View>
     );
   }
@@ -104,6 +96,9 @@ export default function ScanScreen() {
         }
       />
 
+      {/* corner frame accent — warm palette, no camera dependency needed */}
+      <View style={styles.frameBox} pointerEvents="none" />
+
       {cameraError && (
         <View style={styles.cameraErrorBox}>
           <Text style={styles.cameraErrorText}>{cameraError}</Text>
@@ -112,28 +107,17 @@ export default function ScanScreen() {
 
       <View style={styles.overlay}>
         <Text style={styles.overlayText}>
-          {scanned ? 'QR Code detected!' : 'Point your camera at a QR code'}
+          {scanned ? 'QR code detected' : 'Point your camera at a QR code'}
         </Text>
 
         {scanned && message && (
-          <Text
-            style={[styles.scanResult, success ? styles.success : styles.error]}
-          >
-            {message}
-          </Text>
+          <Text style={[styles.scanResult, success ? styles.success : styles.error]}>{message}</Text>
         )}
 
-        {scanned && lastData && (
-          <Text style={styles.scanData}>{lastData}</Text>
-        )}
+        {scanned && lastData && <Text style={styles.scanData}>{lastData}</Text>}
 
         {scanned && (
-          <AppButton
-            theme="primary"
-            title="Scan Again"
-            icon="refresh"
-            onPress={handleScanAgain}
-          />
+          <AppButton theme="primary" title="Scan again" icon="refresh" onPress={handleScanAgain} />
         )}
       </View>
     </View>
@@ -141,99 +125,32 @@ export default function ScanScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
+  container: { flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
+  lockedContainer: { flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24, gap: 8 },
+  lockedTitle: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginTop: 12 },
+  lockedSubtitle: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
+  camera: { ...StyleSheet.absoluteFillObject },
+  frameBox: {
+    position: 'absolute',
+    top: '28%', left: '15%', right: '15%', height: '32%',
+    borderWidth: 3, borderColor: COLORS.primary, borderRadius: 18,
   },
-  lockedContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    gap: 8,
-  },
-  lockedTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginTop: 12,
-  },
-  lockedSubtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  camera: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 16,
-  },
+  title: { fontSize: 20, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 8 },
+  subtitle: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20, marginBottom: 16 },
   overlay: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    bottom: 60,
-    backgroundColor: COLORS.card,
-    borderRadius: 14,
-    padding: 16,
-    alignItems: 'center',
+    position: 'absolute', left: 20, right: 20, bottom: 60,
+    backgroundColor: COLORS.card, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border,
+    padding: 16, alignItems: 'center',
   },
-  overlayText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  scanResult: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 8,
-    fontWeight: '600',
-  },
-  success: {
-    color: '#2E7D32',
-  },
-  error: {
-    color: '#C62828',
-  },
-  scanData: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
+  overlayText: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 6, textAlign: 'center' },
+  scanResult: { fontSize: 14, textAlign: 'center', marginBottom: 8, fontWeight: '600' },
+  success: { color: COLORS.primary },
+  error: { color: COLORS.danger },
+  scanData: { fontSize: 12, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 12 },
   cameraErrorBox: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    right: 20,
-    backgroundColor: COLORS.card,
-    borderRadius: 14,
-    padding: 16,
-    alignItems: 'center',
+    position: 'absolute', top: 60, left: 20, right: 20,
+    backgroundColor: COLORS.card, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border,
+    padding: 16, alignItems: 'center',
   },
-  cameraErrorText: {
-    fontSize: 14,
-    color: '#C62828',
-    textAlign: 'center',
-    fontWeight: '600',
-  },
+  cameraErrorText: { fontSize: 14, color: COLORS.danger, textAlign: 'center', fontWeight: '600' },
 });
-
