@@ -17,13 +17,14 @@ export default function AppButton({ title, icon, theme, onPress, disabled }: Pro
       <View
         style={[
           styles.buttonOuter,
-          { borderWidth: 3, borderColor: COLORS.primary, borderRadius: 18 },
+          styles.primaryHairline,
           disabled && styles.disabled,
         ]}
       >
         <Pressable
           style={[styles.buttonInner, { backgroundColor: COLORS.primary }]}
           onPress={onPress}
+          
           disabled={disabled}
         >
           <Ionicons
@@ -32,7 +33,7 @@ export default function AppButton({ title, icon, theme, onPress, disabled }: Pro
             color={COLORS.textOnPrimary}
             style={styles.icon}
           />
-          <Text style={[styles.label, { color: COLORS.textOnPrimary }]}>
+          <Text style={[styles.label, styles.labelPrimary, { color: COLORS.textOnPrimary }]}>
             {title}
           </Text>
         </Pressable>
@@ -42,7 +43,11 @@ export default function AppButton({ title, icon, theme, onPress, disabled }: Pro
 
   return (
     <View style={[styles.buttonOuter, disabled && styles.disabled]}>
-      <Pressable style={styles.buttonInner} onPress={onPress} disabled={disabled}>
+      <Pressable
+        style={[styles.buttonInner, styles.secondaryFill]}
+        onPress={onPress}
+        disabled={disabled}
+      >
         <Ionicons
           name={icon}
           size={22}
@@ -61,20 +66,26 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   buttonInner: {
-    borderRadius: 14,
+    borderRadius: 10,
     paddingVertical: 16,
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+  },
+  primaryHairline: {
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderRadius: 10,
+  },
+  secondaryFill: {
     backgroundColor: COLORS.card,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
   },
   icon: { paddingRight: 10 },
   label: { fontSize: 17, fontWeight: '600', color: COLORS.textPrimary },
+  labelPrimary: { fontWeight: '700' },
   disabled: { opacity: 0.5 },
 });

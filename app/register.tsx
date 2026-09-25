@@ -10,8 +10,9 @@ import {
   ActivityIndicator,
   TouchableWithoutFeedback,
   Keyboard,
+  Pressable,
 } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppButton from '@/components/AppButton';
@@ -21,12 +22,16 @@ import { signUp } from '@/lib/auth';
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [role, setRole] = useState<'student' | 'teacher'>('student');
+
 
   const handleRegister = async () => {
     setError(null);
@@ -49,10 +54,16 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      const { error: authError } = await signUp(email.trim(), password);
+      const { data, error: authError } = await signUp(email.trim(), password, {
+        full_name: fullName.trim(),
+        role,
+      });
 
       if (authError) {
         setError(authError.message);
+      } else if (data?.session) {
+        // Email confirmation disabled -> already signed in, go to tabs.
+        router.replace('/(tabs)');
       } else {
         setSuccess(true);
       }
@@ -96,6 +107,16 @@ export default function RegisterScreen() {
               </View>
             ) : (
               <View style={styles.form}>
+                <Text style={styles.label}>Full Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={fullName}
+                  onChangeText={setFullName}
+                  placeholder="Your full name"
+                  placeholderTextColor={COLORS.textSecondary}
+                  editable={!loading}
+                />
+
                 <Text style={styles.label}>Email</Text>
                 <TextInput
                   style={styles.input}
@@ -129,6 +150,25 @@ export default function RegisterScreen() {
                   secureTextEntry
                   editable={!loading}
                 />
+                <Text style={styles.label}>I am a...</Text>
+                <View style={styles.roleRow}>
+                  <Pressable
+                    style={[styles.roleChip, role === 'student' && styles.roleChipActive]}
+                    onPress={() => setRole('student')}
+                  >
+                    <Text style={[styles.roleChipText, role === 'student' && styles.roleChipTextActive]}>
+                      Student
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.roleChip, role === 'teacher' && styles.roleChipActive]}
+                    onPress={() => setRole('teacher')}
+                  >
+                    <Text style={[styles.roleChipText, role === 'teacher' && styles.roleChipTextActive]}>
+                      Teacher
+                    </Text>
+                  </Pressable>
+                </View>
 
                 {error && <Text style={styles.error}>{error}</Text>}
 
@@ -176,16 +216,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     color: COLORS.textPrimary,
-    textAlign: 'center',
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.textSecondary,
-    textAlign: 'center',
+    lineHeight: 21,
     marginBottom: 32,
   },
   form: {
@@ -200,20 +239,46 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: COLORS.card,
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 15,
+    fontSize: 16,
     color: COLORS.textPrimary,
   },
   error: {
     fontSize: 14,
-    color: '#C62828',
-    textAlign: 'center',
+    color: COLORS.danger,
     marginTop: 12,
     marginBottom: 4,
+  },
+  roleRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  roleChip: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    alignItems: 'center',
+  },
+  roleChipActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary + '14',
+  },
+  roleChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  roleChipTextActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
   },
   loader: {
     marginVertical: 16,

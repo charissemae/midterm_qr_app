@@ -3,19 +3,42 @@ import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import AppButton from '@/components/AppButton';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '@/constants/colors';
 //import { STUDENT_ID } from '@/constants/student';
 import { useAuth } from '@/lib/auth';
-import { registerAttendance } from '@/lib/database';
+import { registerAttendance } from '@/lib/attendance';
+import { useRole } from '@/lib/useRole';
 
 export default function ScanScreen() {
   const { user } = useAuth();
+  const { role, loading: roleLoading } = useRole();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [lastData, setLastData] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+
+  if (roleLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  if (role === 'teacher') {
+    return (
+      <View style={styles.lockedContainer}>
+        <Ionicons name="lock-closed-outline" size={56} color={COLORS.textSecondary} />
+        <Text style={styles.lockedTitle}>Students Only</Text>
+        <Text style={styles.lockedSubtitle}>
+          Scanning is for students. Teachers create events in the Teacher tab.
+        </Text>
+      </View>
+    );
+  }
 
   if (!permission) {
     return (
@@ -45,12 +68,21 @@ export default function ScanScreen() {
   const handleBarcodeScanned = ({ data }: { data: string }) => {
     setScanned(true);
     setLastData(data);
-    //registerAttendance(data, STUDENT_ID).then((result) => {
-    const studentId = user?.id ?? 'unknown';
-    registerAttendance(data, studentId).then((result) => {
-      setMessage(result.message);
-      setSuccess(result.success);
-    });
+    const studentId = user?.id;
+    if (!studentId) {
+      setMessage('You must be logged in to scan.');
+      setSuccess(false);
+      return;
+    }
+    registerAttendance(data, studentId)
+      .then((result) => {
+        setMessage(result.message);
+        setSuccess(result.success);
+      })
+      .catch(() => {
+        setMessage('Could not reach the server. Please try again.');
+        setSuccess(false);
+      });
   };
 
   const handleScanAgain = () => {
@@ -115,6 +147,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
+  },
+  lockedContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  lockedTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginTop: 12,
+  },
+  lockedSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   camera: {
     ...StyleSheet.absoluteFillObject,

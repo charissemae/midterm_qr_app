@@ -16,7 +16,10 @@ import QRCode from 'react-native-qrcode-svg';
 
 import AppButton from '@/components/AppButton';
 import { COLORS } from '@/constants/colors';
-import { createEvent } from '@/lib/database';
+import { createEvent } from '@/lib/events';
+import { buildQRPayload } from '@/lib/qr';
+import { useAuth } from '@/lib/auth';
+import { useRole } from '@/lib/useRole';
 
 function toLocalISO(date: Date) {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -43,6 +46,8 @@ const QUICK_END_OPTIONS = [
 type EditTarget = 'start' | 'end';
 
 export default function TeacherScreen() {
+  const { user } = useAuth();
+  const { role, loading: roleLoading } = useRole();
   const [title, setTitle] = useState('');
   const [eventId, setEventId] = useState('');
   const [startDate, setStartDate] = useState(() => new Date());
@@ -55,6 +60,26 @@ export default function TeacherScreen() {
   const [message, setMessage] = useState<string | null>(null);
 
   const isAndroid = Platform.OS === 'android';
+
+  if (roleLoading) {
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <Text style={styles.title}>Checking your account...</Text>
+      </ScrollView>
+    );
+  }
+
+  if (role !== 'teacher') {
+    return (
+      <View style={styles.lockedContainer}>
+        <Ionicons name="lock-closed-outline" size={56} color={COLORS.textSecondary} />
+        <Text style={styles.lockedTitle}>Teachers Only</Text>
+        <Text style={styles.lockedSubtitle}>
+          Only teacher accounts can create events.
+        </Text>
+      </View>
+    );
+  }
 
   const openPicker = (target: EditTarget) => {
     setMessage(null);
@@ -112,17 +137,13 @@ export default function TeacherScreen() {
       return;
     }
 
-    createEvent(event).then(() => {
+    createEvent(event).then(({ error }) => {
+      if (error) {
+        setMessage('Could not save the event. Please try again.');
+        return;
+      }
       setMessage('Event saved! Scan the QR with the Scan tab to test it.');
-      setPayload(
-        JSON.stringify({
-          v: 1,
-          event: event.eventId,
-          title: event.title,
-          start: event.start,
-          end: event.end,
-        })
-      );
+      setPayload(buildQRPayload(event));
     });
   };
 
@@ -240,6 +261,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  lockedContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  lockedTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  lockedSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   content: {
     paddingHorizontal: 24,

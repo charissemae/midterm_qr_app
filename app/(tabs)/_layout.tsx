@@ -1,15 +1,22 @@
 import { Tabs } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { StyleSheet } from 'react-native';
+
+import { COLORS } from '@/constants/colors';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#f5a5ce',
-        headerStyle: { backgroundColor: '#f0f5e0' },
+        tabBarActiveTintColor: COLORS.primary,
+        headerStyle: { backgroundColor: COLORS.background },
         headerShadowVisible: false,
-        headerTintColor: '#494444',
-        tabBarStyle: { backgroundColor: '#f0f5e0' },
+        headerTintColor: COLORS.textPrimary,
+        tabBarStyle: {
+          backgroundColor: COLORS.card,
+          borderTopColor: COLORS.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
+        },
       }}
     >
       <Tabs.Screen
@@ -52,19 +59,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              color={color}
-              size={24}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="teacher"
         options={{
           title: 'Teacher',
@@ -77,8 +71,19 @@ export default function TabLayout() {
           ),
         }}
       />
-      
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'person' : 'person-outline'}
+              color={color}
+              size={24}
+            />
+          ),
+        }}
+      />
     </Tabs>
-
   );
 }

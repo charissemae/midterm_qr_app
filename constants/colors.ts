@@ -1,11 +1,14 @@
 export const COLORS = {
-  primary: '#E981A4',       // Vibrant Pink (main action buttons/accents)
-  background: '#FAF2DD',    // Cream / Off-white (clean background color)
-  card: '#FFFFFF',          // Clean White (for cards)
-  textPrimary: '#3A1F28',   // Dark Plum/Berry (for readable primary text)
-  textSecondary: '#7A5260', // Soft Rose Brown (for subtitles/secondary text)
-  textOnPrimary: '#FFFFFF', // White text on primary buttons
-  surface: '#FEC9C3',       // Soft Coral/Pink (for light container surfaces)
-  border: '#F9ADB7',        // Soft Pink (for subtle borders/dividers)
-  shadow: '#D16B8E',        // Darker Pink (for soft UI shadows)
+  primary: '#2E7D5B',       // Signal Green (verified/present + primary actions)
+  background: '#F7F6F2',    // Warm off-white paper (clean, calm background)
+  card: '#FFFFFF',          // Near-white (only where a true elevated surface is needed)
+  textPrimary: '#14181F',   // Near-black ink (strong, readable primary text)
+  textSecondary: '#5D6B7A', // Muted grey-blue (support text)
+  textOnPrimary: '#FFFFFF', // White text on primary/green surfaces
+  surface: '#EFF3F0',       // Subtle green-tinted surface (e.g. Header logo circle)
+  border: '#DADFE3',        // Hairline (defines surfaces; replaces drop shadows)
+  shadow: '#14181F',        // Ink (used for any remaining soft shading)
+  warning: '#C97A2B',       // Amber (late/pending states)
+  success: '#2E7D5B',       // Same signal green, named for its "present" use
+  danger: '#B3261E',        // Red (errors)
 } as const;

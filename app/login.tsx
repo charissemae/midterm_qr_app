@@ -11,7 +11,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppButton from '@/components/AppButton';
@@ -21,7 +21,6 @@ import { signIn } from '@/lib/auth';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -36,8 +35,19 @@ export default function LoginScreen() {
 
       if (authError) {
         setError(authError.message);
+        return;
+      }
+
+      const session = data?.session;
+      const user = data?.user;
+
+      if (session) {
+        // Wala nay manual navigation dinhi.
+        // Ang root _layout.tsx (Redirect) na ray mag-handle.
+      } else if (user) {
+        setError('Email not confirmed yet. Please check your inbox and click the confirmation link, then sign in again.');
       } else {
-        router.replace('/(tabs)');
+        setError('No session returned. Please try again.');
       }
     } catch (err: any) {
       setError(err?.message || 'Unexpected error');
@@ -115,70 +125,25 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  headerContainer: {
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  form: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 6,
-    marginTop: 10,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  keyboardView: { flex: 1 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 },
+  headerContainer: { alignItems: 'center', marginTop: 20, marginBottom: 16 },
+  title: { fontSize: 28, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
+  subtitle: { fontSize: 15, color: COLORS.textSecondary, lineHeight: 21, marginBottom: 32 },
+  form: { marginBottom: 24 },
+  label: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 6, marginTop: 10 },
   input: {
     backgroundColor: COLORS.card,
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 15,
+    fontSize: 16,
     color: COLORS.textPrimary,
   },
-  error: {
-    fontSize: 14,
-    color: '#C62828',
-    textAlign: 'center',
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  loader: {
-    marginVertical: 16,
-  },
-  link: {
-    fontSize: 14,
-    color: COLORS.primary,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
+  error: { fontSize: 14, color: COLORS.danger, marginTop: 12, marginBottom: 4 },
+  loader: { marginVertical: 16 },
+  link: { fontSize: 14, color: COLORS.primary, textAlign: 'center', fontWeight: '600' },
 });
