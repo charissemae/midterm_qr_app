@@ -1,15 +1,18 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
+  Alert,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  Alert,
-  Pressable,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 
 import AppButton from '@/components/AppButton';
+import Header from '@/components/Header';
 import { COLORS } from '@/constants/colors';
 import { useAuth, signOut } from '@/lib/auth';
 import {
@@ -29,15 +32,13 @@ export default function ProfileScreen() {
 
   const loadProfile = useCallback(async () => {
     if (!user) return;
-    let p = await getProfile(user.id);
-    if (!p) {
-      // Row missing (karaan nga account / signup trigger miss): heal it
-      // silently so the role displays and the account works.
+    let nextProfile = await getProfile(user.id);
+    if (!nextProfile) {
       await ensureProfile(user.id, user.email);
-      p = await getProfile(user.id);
+      nextProfile = await getProfile(user.id);
     }
-    setProfile(p);
-    setDraftName(p?.full_name ?? '');
+    setProfile(nextProfile);
+    setDraftName(nextProfile?.full_name ?? '');
   }, [user]);
 
   useFocusEffect(
@@ -56,13 +57,13 @@ export default function ProfileScreen() {
     if (error) {
       Alert.alert('Error', error);
     } else {
-      setProfile((prev) => {
+      setProfile((previous) => {
         const base =
-          prev ?? {
+          previous ?? {
             id: user.id,
             email: user.email ?? '',
             full_name: null,
-            role: 'student',
+            role: 'student' as const,
           };
         return { ...base, full_name: draftName.trim() };
       });
@@ -74,9 +75,6 @@ export default function ProfileScreen() {
     setLoading(true);
     try {
       await signOut();
-      // Wala nay manual navigation dinhi.
-      // Ang root _layout.tsx (Redirect) na ray mag-handle sa redirect
-      // pag mabag-o ang session state.
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Failed to sign out.');
     } finally {
@@ -84,74 +82,114 @@ export default function ProfileScreen() {
     }
   };
 
+  const displayName = profile?.full_name?.trim() || 'Add your name';
+  const initial = displayName.charAt(0).toUpperCase() || 'Q';
+  const isTeacher = profile?.role === 'teacher';
+  const roleLabel = profile ? (isTeacher ? 'Teacher' : 'Student') : 'Member';
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>My Profile</Text>
-
-      {user && (
-        <View style={styles.infoCard}>
-          {profile && (
-            <View style={styles.badgeContainer}>
-              {profile.role === 'teacher' ? (
-                <View style={styles.roleBadge}>
-                  <Text style={styles.roleBadgeText}>Teacher</Text>
-                </View>
-              ) : (
-                <View style={[styles.roleBadge, styles.roleBadgeStudent]}>
-                  <Text style={styles.roleBadgeText}>Student</Text>
-                </View>
-              )}
+      <Header title="Profile" />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.identityCard}>
+          <View style={styles.identityTop}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initial}</Text>
+              <View style={styles.avatarAccent} />
             </View>
-          )}
-
-          <Text style={styles.label}>Account Role</Text>
-          <Text style={styles.value}>
-            {profile?.role === 'teacher' ? 'Teacher' : 'Student'}
-          </Text>
-          <Text style={styles.hint}>Your role is chosen at sign up.</Text>
-
-          <Text style={styles.label}>Name</Text>
-          {editing ? (
-            <View style={styles.nameEditRow}>
-              <TextInput
-                style={styles.nameInput}
-                value={draftName}
-                onChangeText={setDraftName}
-                placeholder="Your full name"
-                placeholderTextColor={COLORS.textSecondary}
-                autoCapitalize="words"
-              />
-              <Pressable
-                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-                onPress={handleSaveName}
-                disabled={saving}
-              >
-                <Text style={styles.saveButtonText}>Save</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable onPress={() => setEditing(true)} style={styles.nameRow}>
-              <Text style={styles.value}>
-                {profile?.full_name || 'Tap to add your name'}
+            <View style={styles.identityCopy}>
+              <Text style={styles.identityName} numberOfLines={1}>
+                {displayName}
               </Text>
-              <Text style={styles.editHint}>Edit</Text>
-            </Pressable>
-          )}
+            </View>
+            <View style={[styles.roleBadge, isTeacher ? styles.teacherBadge : styles.studentBadge]}>
+              <Text style={[styles.roleBadgeText, isTeacher ? styles.teacherBadgeText : styles.studentBadgeText]}>
+                {roleLabel}
+              </Text>
+            </View>
+          </View>
 
-          <Text style={styles.label}>Email</Text>
-          <Text style={styles.value}>{user.email}</Text>
+          <View style={styles.divider} />
 
-          <Text style={styles.label}>User ID</Text>
-          <Text style={styles.valueSmall}>{user.id}</Text>
+          <View style={styles.nameSection}>
+            <Text style={styles.sectionLabel}>Display name</Text>
+            {editing ? (
+              <View style={styles.editRow}>
+                <TextInput
+                  style={styles.nameInput}
+                  value={draftName}
+                  onChangeText={setDraftName}
+                  placeholder="Your full name"
+                  placeholderTextColor={COLORS.textTertiary}
+                  autoCapitalize="words"
+                  editable={!saving}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    styles.saveButton,
+                    saving && styles.saveButtonDisabled,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={handleSaveName}
+                  disabled={saving}
+                >
+                  <Text style={styles.saveButtonText}>{saving ? '...' : 'Save'}</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.nameRow, pressed && styles.pressed]}
+                onPress={() => setEditing(true)}
+              >
+                <Text style={styles.nameValue}>{profile?.full_name || 'Tap to add your name'}</Text>
+                <View style={styles.editAction}>
+                  <Text style={styles.editText}>Edit</Text>
+                  <Ionicons name="pencil-outline" size={15} color={COLORS.primaryDark} />
+                </View>
+              </Pressable>
+            )}
+          </View>
         </View>
-      )}
 
-      <AppButton
-        title="Sign Out"
-        icon="log-out-outline"
-        onPress={handleSignOut}
-        disabled={loading}
-      />
+        <View style={styles.accountCard}>
+          <View style={styles.accountHeader}>
+            <View style={styles.accountIcon}>
+              <Ionicons name="person-outline" size={19} color={COLORS.textPrimary} />
+            </View>
+            <View>
+              <Text style={styles.accountTitle}>Account details</Text>
+            </View>
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Email</Text>
+            <Text style={styles.fieldValue} numberOfLines={1}>
+              {user?.email || 'Not available'}
+            </Text>
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Account ID</Text>
+            <Text style={styles.fieldValueSmall} numberOfLines={1} ellipsizeMode="middle">
+              {user?.id || 'Not available'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.signOutWrap}>
+          <AppButton
+            variant="danger"
+            title="Sign out"
+            icon="log-out-outline"
+            onPress={handleSignOut}
+            disabled={loading}
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -160,100 +198,213 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingHorizontal: 24,
-    paddingTop: 24,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 16,
+  content: {
+    paddingHorizontal: 22,
+    paddingTop: 20,
+    paddingBottom: 34,
   },
-  infoCard: {
+  identityCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 24,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 18,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 4,
   },
-  badgeContainer: {
+  identityTop: {
     flexDirection: 'row',
-    marginBottom: 8,
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 22,
+    backgroundColor: COLORS.mint,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  avatarText: {
+    fontSize: 25,
+    fontWeight: '900',
+    color: COLORS.textPrimary,
+  },
+  avatarAccent: {
+    position: 'absolute',
+    width: 14,
+    height: 14,
+    borderRadius: 5,
+    right: -3,
+    bottom: -3,
+    backgroundColor: COLORS.matcha,
+    borderWidth: 2,
+    borderColor: COLORS.card,
+  },
+  identityCopy: {
+    flex: 1,
+    marginLeft: 13,
+    marginRight: 8,
+  },
+  identityName: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: COLORS.textPrimary,
   },
   roleBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: COLORS.primary,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
   },
-  roleBadgeStudent: {
-    backgroundColor: COLORS.primary,
+  teacherBadge: {
+    backgroundColor: COLORS.sakura,
+    borderColor: COLORS.tanDeep,
+  },
+  studentBadge: {
+    backgroundColor: COLORS.primarySoft,
+    borderColor: COLORS.primaryDark,
   },
   roleBadgeText: {
-    color: COLORS.textOnPrimary,
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.4,
   },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: 4,
-    marginTop: 8,
+  teacherBadgeText: {
+    color: COLORS.tanDeep,
   },
-  hint: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    lineHeight: 17,
-    marginTop: 4,
+  studentBadgeText: {
+    color: COLORS.primaryDark,
   },
-  value: {
-    fontSize: 15,
-    color: COLORS.textPrimary,
-    fontWeight: '500',
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 17,
   },
-  valueSmall: {
+  nameSection: {
+    paddingHorizontal: 2,
+  },
+  sectionLabel: {
     fontSize: 11,
-    color: COLORS.textSecondary,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    color: COLORS.textTertiary,
+    marginBottom: 8,
   },
   nameRow: {
+    minHeight: 38,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  editHint: {
-    fontSize: 13,
-    color: COLORS.primary,
-    fontWeight: '600',
+  nameValue: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
   },
-  nameEditRow: {
+  editAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  editText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primaryDark,
+  },
+  editRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   nameInput: {
     flex: 1,
-    backgroundColor: COLORS.background,
-    borderRadius: 10,
+    minHeight: 44,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 15,
+    paddingVertical: 0,
+    fontSize: 14,
     color: COLORS.textPrimary,
   },
   saveButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
+    minHeight: 44,
+    borderRadius: 12,
+    backgroundColor: COLORS.matcha,
+    borderWidth: 1,
+    borderColor: COLORS.primaryDark,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.55,
   },
   saveButtonText: {
+    fontSize: 12,
+    fontWeight: '900',
     color: COLORS.textOnPrimary,
+  },
+  pressed: {
+    opacity: 0.78,
+  },
+  accountCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 17,
+    marginTop: 15,
+  },
+  accountHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  accountIcon: {
+    width: 39,
+    height: 39,
+    borderRadius: 13,
+    backgroundColor: COLORS.sky,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  accountTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  field: {
+    marginTop: 14,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.textTertiary,
+    marginBottom: 4,
+  },
+  fieldValue: {
     fontSize: 14,
     fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  fieldValueSmall: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  signOutWrap: {
+    marginTop: 23,
   },
 });
