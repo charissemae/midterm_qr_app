@@ -264,12 +264,15 @@ export default function TeacherScreen() {
             </View>
           ) : null}
 
-          <AppButton
-            theme="primary"
-            title="Create event"
-            icon="add-circle-outline"
-            onPress={handleCreateEvent}
-          />
+          <View style={styles.submitBlock}>
+            <AppButton
+              theme="primary"
+              title="Create event"
+              icon="add-circle-outline"
+              onPress={handleCreateEvent}
+              spaced={false}
+            />
+          </View>
 
           {editTarget ? (
             <View style={styles.pickerContainer}>
@@ -516,7 +519,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     padding: 12,
     marginTop: 17,
-    marginBottom: 2,
+    marginBottom: 0,
   },
   messageSuccess: {
     backgroundColor: COLORS.successSoft,
@@ -536,9 +539,13 @@ const styles = StyleSheet.create({
   messageErrorText: {
     color: COLORS.danger,
   },
+  submitBlock: {
+    width: '100%',
+    marginTop: 20,
+  },
   pickerContainer: {
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 20,
   },
   resultCard: {
     backgroundColor: COLORS.card,

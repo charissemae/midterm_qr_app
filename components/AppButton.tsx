@@ -13,6 +13,7 @@ type Props = {
   onPress: () => void;
   disabled?: boolean;
   compact?: boolean;
+  spaced?: boolean;
 };
 
 export default function AppButton({
@@ -23,6 +24,7 @@ export default function AppButton({
   onPress,
   disabled = false,
   compact = false,
+  spaced = true,
 }: Props) {
   const buttonVariant = variant ?? theme ?? 'secondary';
   const isPrimary = buttonVariant === 'primary';
@@ -42,6 +44,7 @@ export default function AppButton({
       style={({ pressed }) => [
         styles.button,
         compact && styles.compact,
+        spaced && !compact && styles.spaced,
         isPrimary && styles.primary,
         buttonVariant === 'secondary' && styles.secondary,
         isDanger && styles.danger,
@@ -75,6 +78,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+  },
+  spaced: {
     marginBottom: 14,
   },
   compact: {
@@ -82,7 +87,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 13,
-    marginBottom: 0,
   },
   primary: {
     backgroundColor: COLORS.primary,

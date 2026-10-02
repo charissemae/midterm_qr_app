@@ -131,20 +131,19 @@ export default function LoginScreen() {
                 </View>
               ) : null}
 
-              {loading ? (
-                <ActivityIndicator
-                  size="large"
-                  color={COLORS.primaryDark}
-                  style={styles.loader}
-                />
-              ) : (
-                <AppButton
-                  theme="primary"
-                  title="Sign in"
-                  icon="log-in-outline"
-                  onPress={handleLogin}
-                />
-              )}
+              <View style={styles.submitBlock}>
+                {loading ? (
+                  <ActivityIndicator size="large" color={COLORS.primaryDark} />
+                ) : (
+                  <AppButton
+                    theme="primary"
+                    title="Sign in"
+                    icon="log-in-outline"
+                    onPress={handleLogin}
+                    spaced={false}
+                  />
+                )}
+              </View>
             </View>
 
             <View style={styles.footer}>
@@ -325,8 +324,12 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: COLORS.danger,
   },
-  loader: {
-    marginVertical: 20,
+  submitBlock: {
+    width: '100%',
+    minHeight: 54,
+    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   footer: {
     flexDirection: 'row',

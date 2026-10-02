@@ -243,20 +243,19 @@ export default function RegisterScreen() {
                   </View>
                 ) : null}
 
-                {loading ? (
-                  <ActivityIndicator
-                    size="large"
-                    color={COLORS.primaryDark}
-                    style={styles.loader}
-                  />
-                ) : (
-                  <AppButton
-                    theme="primary"
-                    title="Create account"
-                    icon="person-add-outline"
-                    onPress={handleRegister}
-                  />
-                )}
+                <View style={styles.submitBlock}>
+                  {loading ? (
+                    <ActivityIndicator size="large" color={COLORS.primaryDark} />
+                  ) : (
+                    <AppButton
+                      theme="primary"
+                      title="Create account"
+                      icon="person-add-outline"
+                      onPress={handleRegister}
+                      spaced={false}
+                    />
+                  )}
+                </View>
               </View>
             )}
 
@@ -471,8 +470,12 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: COLORS.danger,
   },
-  loader: {
-    marginVertical: 20,
+  submitBlock: {
+    width: '100%',
+    minHeight: 54,
+    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   successCard: {
     width: '100%',
