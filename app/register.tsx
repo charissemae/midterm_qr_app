@@ -31,7 +31,7 @@ export default function RegisterScreen() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<'student' | 'teacher'>('student');
+  const [role, setRole] = useState<'student' | 'teacher' | 'admin'>('student');
 
   const handleRegister = async () => {
     setError(null);
@@ -234,6 +234,31 @@ export default function RegisterScreen() {
                       Teacher
                     </Text>
                   </Pressable>
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: role === 'admin' }}
+                    style={({ pressed }) => [
+                      styles.roleOption,
+                      role === 'admin' && styles.roleOptionActive,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={() => setRole('admin')}
+                    disabled={loading}
+                  >
+                    <Ionicons
+                      name="shield-checkmark-outline"
+                      size={18}
+                      color={role === 'admin' ? COLORS.primaryDark : COLORS.textTertiary}
+                    />
+                    <Text
+                      style={[
+                        styles.roleText,
+                        role === 'admin' && styles.roleTextActive,
+                      ]}
+                    >
+                      Admin
+                    </Text>
+                  </Pressable>
                 </View>
 
                 {error ? (
@@ -426,10 +451,12 @@ const styles = StyleSheet.create({
   },
   roleRow: {
     flexDirection: 'row',
-    gap: 10,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   roleOption: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 90,
     minHeight: 48,
     borderRadius: 14,
     borderWidth: 1,
@@ -438,14 +465,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
+    gap: 6,
   },
   roleOptionActive: {
     borderColor: COLORS.primaryDark,
     backgroundColor: COLORS.primarySoft,
   },
   roleText: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
     color: COLORS.textSecondary,
   },

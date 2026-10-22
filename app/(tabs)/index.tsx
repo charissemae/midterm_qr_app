@@ -1,12 +1,55 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import AppButton from '@/components/AppButton';
 import Header from '@/components/Header';
 import { COLORS } from '@/constants/colors';
+import { formatEventWindow } from '@/lib/datetime';
+import { getAvailableEvents, getEventPhase, type CloudEvent } from '@/lib/events';
+import { useRole } from '@/lib/useRole';
+
+const PHASE_LABEL = {
+  ongoing: 'Live',
+  upcoming: 'Upcoming',
+  ended: 'Ended',
+  closed: 'Closed',
+} as const;
 
 export default function Index() {
+  const { role, loading: roleLoading } = useRole();
+  const [events, setEvents] = useState<CloudEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const showEvents = !roleLoading && role === 'student';
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      if (!showEvents) {
+        setEventsLoading(false);
+        return () => {
+          active = false;
+        };
+      }
+      setEventsLoading(true);
+      getAvailableEvents().then((rows) => {
+        if (!active) return;
+        setEvents(rows);
+        setEventsLoading(false);
+      });
+      return () => {
+        active = false;
+      };
+    }, [showEvents])
+  );
   return (
     <View style={styles.container}>
       <Header title="Home" />
@@ -70,6 +113,82 @@ export default function Index() {
             <Ionicons name="arrow-forward" size={17} color={COLORS.primaryDark} style={styles.actionArrow} />
           </Pressable>
         </View>
+
+        {showEvents ? (
+          <>
+            <View style={styles.sectionHeading}>
+              <View>
+                <Text style={styles.sectionTitle}>Available events</Text>
+              </View>
+              <View style={styles.sectionRule} />
+            </View>
+
+            {eventsLoading ? (
+              <View style={styles.eventsLoading}>
+                <ActivityIndicator size="small" color={COLORS.primaryDark} />
+                <Text style={styles.eventsLoadingText}>Loading events...</Text>
+              </View>
+            ) : events.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Ionicons name="calendar-outline" size={22} color={COLORS.textTertiary} />
+                <Text style={styles.emptyText}>No events posted yet. Check back later.</Text>
+              </View>
+            ) : (
+              <View style={styles.eventsList}>
+                {events.map((event) => {
+                  const phase = getEventPhase(event);
+                  const pillStyles =
+                    phase === 'ongoing'
+                      ? styles.statusOngoing
+                      : phase === 'upcoming'
+                        ? styles.statusUpcoming
+                        : phase === 'closed'
+                          ? styles.statusClosed
+                          : styles.statusEnded;
+                  const pillTextStyles =
+                    phase === 'ongoing'
+                      ? styles.statusOngoingText
+                      : phase === 'upcoming'
+                        ? styles.statusUpcomingText
+                        : phase === 'closed'
+                          ? styles.statusClosedText
+                          : styles.statusEndedText;
+                  return (
+                    <View key={event.id} style={styles.eventCard}>
+                      <View style={styles.eventRow}>
+                        <Text style={styles.eventTitle} numberOfLines={1}>
+                          {event.title}
+                        </Text>
+                        <View style={[styles.statusPill, pillStyles]}>
+                          <Text style={[styles.statusPillText, pillTextStyles]}>
+                            {PHASE_LABEL[phase]}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.eventMeta}>
+                        <Ionicons name="pricetag-outline" size={13} color={COLORS.textTertiary} />
+                        <Text style={styles.eventMetaText}>{event.event_code}</Text>
+                        <Ionicons
+                          name="calendar-outline"
+                          size={13}
+                          color={COLORS.textTertiary}
+                          style={styles.eventMetaIcon}
+                        />
+                        <Text style={styles.eventMetaText}>{formatEventWindow(event)}</Text>
+                      </View>
+                      {event.venue ? (
+                        <View style={styles.eventMeta}>
+                          <Ionicons name="location-outline" size={13} color={COLORS.textTertiary} />
+                          <Text style={styles.eventMetaText}>{event.venue}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -255,5 +374,114 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 13,
     bottom: 15,
+  },
+  eventsLoading: {
+    minHeight: 70,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  eventsLoadingText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
+  emptyCard: {
+    minHeight: 76,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  emptyText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  eventsList: {
+    gap: 10,
+  },
+  eventCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    padding: 14,
+  },
+  eventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  eventTitle: {
+    flex: 1,
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  statusPill: {
+    borderRadius: 9,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderWidth: 1,
+  },
+  statusPillText: {
+    fontSize: 10.5,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+  },
+  statusOngoing: {
+    backgroundColor: COLORS.successSoft,
+    borderColor: COLORS.success,
+  },
+  statusOngoingText: {
+    color: COLORS.success,
+  },
+  statusUpcoming: {
+    backgroundColor: COLORS.warningSoft,
+    borderColor: COLORS.warning,
+  },
+  statusUpcomingText: {
+    color: COLORS.warning,
+  },
+  statusEnded: {
+    backgroundColor: COLORS.surfaceMuted,
+    borderColor: COLORS.border,
+  },
+  statusEndedText: {
+    color: COLORS.textTertiary,
+  },
+  statusClosed: {
+    backgroundColor: COLORS.dangerSoft,
+    borderColor: COLORS.danger,
+  },
+  statusClosedText: {
+    color: COLORS.danger,
+  },
+  eventMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 5,
+    marginTop: 9,
+  },
+  eventMetaIcon: {
+    marginLeft: 10,
+  },
+  eventMetaText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
   },
 });

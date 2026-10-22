@@ -17,9 +17,33 @@ import {
   getAttendanceHistory,
   getTeacherEventAttendance,
   type AttendanceRecord,
+  type AttendanceStatus,
   type TeacherEventAttendance,
 } from '@/lib/attendance';
 import { useRole } from '@/lib/useRole';
+
+const STATUS_LABEL: Record<AttendanceStatus, string> = {
+  present: 'Present',
+  late: 'Late',
+  absent: 'Absent',
+};
+
+function StatusBadge({ status }: { status: AttendanceStatus }) {
+  const background =
+    status === 'present'
+      ? COLORS.successSoft
+      : status === 'late'
+        ? COLORS.warningSoft
+        : COLORS.dangerSoft;
+  const color =
+    status === 'present' ? COLORS.success : status === 'late' ? COLORS.warning : COLORS.danger;
+
+  return (
+    <View style={[styles.statusBadge, { backgroundColor: background, borderColor: color }]}>
+      <Text style={[styles.statusBadgeText, { color }]}>{STATUS_LABEL[status]}</Text>
+    </View>
+  );
+}
 
 export default function HistoryScreen() {
   const { user } = useAuth();
@@ -172,7 +196,10 @@ export default function HistoryScreen() {
                                   {attendee.studentName ?? 'Unnamed attendee'}
                                 </Text>
                               </View>
-                              <Text style={styles.attendeeTime}>{formatTime(attendee.scannedAt)}</Text>
+                              <View style={styles.attendeeRight}>
+                                <Text style={styles.attendeeTime}>{formatTime(attendee.scannedAt)}</Text>
+                                <StatusBadge status={attendee.status} />
+                              </View>
                             </View>
                           ))}
                         </View>
@@ -218,15 +245,19 @@ export default function HistoryScreen() {
                   <Text style={styles.eventTitle} numberOfLines={1}>
                     {item.eventTitle || 'Attendance record'}
                   </Text>
-                  <View style={styles.recordedBadge}>
-                    <Text style={styles.recordedText}>RECORDED</Text>
-                  </View>
+                  <StatusBadge status={item.status} />
                 </View>
                 <View style={styles.metaRow}>
                   {item.eventId ? <Text style={styles.eventCode}>{item.eventId}</Text> : null}
                   {item.eventId ? <Text style={styles.metaDivider}>•</Text> : null}
                   <Text style={styles.eventMeta}>{formatDate(item.scannedAt)}</Text>
                 </View>
+                {item.attendanceDate || item.attendanceTime ? (
+                  <Text style={styles.recordMeta}>
+                    Attendance date: {item.attendanceDate ?? '—'} • Time:{' '}
+                    {item.attendanceTime ?? '—'}
+                  </Text>
+                ) : null}
               </View>
             )}
           />
@@ -408,6 +439,28 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.5,
     color: COLORS.success,
+  },
+  statusBadge: {
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  statusBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+  },
+  recordMeta: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    marginTop: 7,
+  },
+  attendeeRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   chevron: {
     marginLeft: 8,

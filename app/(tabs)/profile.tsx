@@ -84,8 +84,26 @@ export default function ProfileScreen() {
 
   const displayName = profile?.full_name?.trim() || 'Add your name';
   const initial = displayName.charAt(0).toUpperCase() || 'Q';
-  const isTeacher = profile?.role === 'teacher';
-  const roleLabel = profile ? (isTeacher ? 'Teacher' : 'Student') : 'Member';
+  const profileRole = profile?.role ?? 'student';
+  const isTeacher = profileRole === 'teacher';
+  const isAdmin = profileRole === 'admin';
+  const roleLabel = profile
+    ? isAdmin
+      ? 'Administrator'
+      : isTeacher
+        ? 'Teacher'
+        : 'Student'
+    : 'Member';
+  const roleBadgeStyle = isAdmin
+    ? styles.adminBadge
+    : isTeacher
+      ? styles.teacherBadge
+      : styles.studentBadge;
+  const roleBadgeTextStyle = isAdmin
+    ? styles.adminBadgeText
+    : isTeacher
+      ? styles.teacherBadgeText
+      : styles.studentBadgeText;
 
   return (
     <View style={styles.container}>
@@ -106,8 +124,8 @@ export default function ProfileScreen() {
                 {displayName}
               </Text>
             </View>
-            <View style={[styles.roleBadge, isTeacher ? styles.teacherBadge : styles.studentBadge]}>
-              <Text style={[styles.roleBadgeText, isTeacher ? styles.teacherBadgeText : styles.studentBadgeText]}>
+            <View style={[styles.roleBadge, roleBadgeStyle]}>
+              <Text style={[styles.roleBadgeText, roleBadgeTextStyle]}>
                 {roleLabel}
               </Text>
             </View>
@@ -271,6 +289,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primarySoft,
     borderColor: COLORS.primaryDark,
   },
+  adminBadge: {
+    backgroundColor: COLORS.sky,
+    borderColor: COLORS.primaryDark,
+  },
   roleBadgeText: {
     fontSize: 10,
     fontWeight: '900',
@@ -280,6 +302,9 @@ const styles = StyleSheet.create({
     color: COLORS.tanDeep,
   },
   studentBadgeText: {
+    color: COLORS.primaryDark,
+  },
+  adminBadgeText: {
     color: COLORS.primaryDark,
   },
   divider: {

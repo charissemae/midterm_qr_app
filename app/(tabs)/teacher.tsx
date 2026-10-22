@@ -2,9 +2,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -16,52 +18,70 @@ import {
 import QRCode from 'react-native-qrcode-svg';
 
 import AppButton from '@/components/AppButton';
+import EventCreateCard, { PickerField } from '@/components/EventCreateCard';
 import Header from '@/components/Header';
 import { COLORS } from '@/constants/colors';
 import { useAuth } from '@/lib/auth';
-import { createEvent } from '@/lib/events';
+import {
+  deleteEvent,
+  getEventPhase,
+  getEventsByTeacher,
+  setEventStatus,
+  updateEvent,
+  type CloudEvent,
+  type EventPhase,
+} from '@/lib/events';
 import { buildQRPayload } from '@/lib/qr';
 import { useRole } from '@/lib/useRole';
+import { formatDateTime, formatEventWindow, toIsoString } from '@/lib/datetime';
 
-function toLocalISO(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}:00`
-  );
-}
-
-function formatDateTime(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const month = date.toLocaleString('en-US', { month: 'short' });
-  return `${month} ${pad(date.getDate())}, ${date.getFullYear()} at ${pad(
-    date.getHours()
-  )}:${pad(date.getMinutes())}`;
-}
-
-const QUICK_END_OPTIONS = [
-  { label: '+30 min', ms: 30 * 60 * 1000 },
-  { label: '+1 hour', ms: 60 * 60 * 1000 },
-  { label: '+2 hours', ms: 2 * 60 * 60 * 1000 },
-];
-
-type EditTarget = 'start' | 'end';
+const PHASE_LABEL: Record<EventPhase, string> = {
+  ongoing: 'Live',
+  upcoming: 'Upcoming',
+  ended: 'Ended',
+  closed: 'Closed',
+};
 
 export default function TeacherScreen() {
   const { user } = useAuth();
   const { role, loading: roleLoading } = useRole();
-  const [title, setTitle] = useState('');
-  const [eventId, setEventId] = useState('');
-  const [startDate, setStartDate] = useState(() => new Date());
-  const [endDate, setEndDate] = useState(
-    () => new Date(Date.now() + 60 * 60 * 1000)
-  );
-  const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
-  const [editingPart, setEditingPart] = useState<'date' | 'time'>('date');
   const [payload, setPayload] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [payloadCode, setPayloadCode] = useState<string | null>(null);
 
-  const isAndroid = Platform.OS === 'android';
+  const [myEvents, setMyEvents] = useState<CloudEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsVersion, setEventsVersion] = useState(0);
+  const [manageMessage, setManageMessage] = useState<string | null>(null);
+  const [editing, setEditing] = useState<CloudEvent | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editVenue, setEditVenue] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editStart, setEditStart] = useState(() => new Date());
+  const [editEnd, setEditEnd] = useState(() => new Date(Date.now() + 60 * 60 * 1000));
+  const [managePicker, setManagePicker] = useState<'start' | 'end' | null>(null);
+  const [managePickerPart, setManagePickerPart] = useState<'date' | 'time'>('date');
+  const [detailsId, setDetailsId] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (role !== 'teacher' || !user?.id) return;
+      let active = true;
+      setEventsLoading(true);
+      getEventsByTeacher(user.id)
+        .then((rows) => {
+          if (!active) return;
+          setMyEvents(rows);
+          setEventsLoading(false);
+        })
+        .catch(() => {
+          if (!active) return;
+          setEventsLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }, [role, user?.id, eventsVersion])
+  );
 
   if (roleLoading) {
     return (
@@ -92,73 +112,150 @@ export default function TeacherScreen() {
     );
   }
 
-  const openPicker = (target: EditTarget) => {
-    setMessage(null);
-    setEditTarget(target);
-    setEditingPart('date');
+  const openManageEdit = (event: CloudEvent) => {
+    setManageMessage(null);
+    setEditing(event);
+    setEditTitle(event.title);
+    setEditVenue(event.venue ?? '');
+    setEditDescription(event.description ?? '');
+    setEditStart(event.start_time ? new Date(event.start_time) : new Date());
+    setEditEnd(
+      event.end_time ? new Date(event.end_time) : new Date(Date.now() + 60 * 60 * 1000)
+    );
   };
 
-  const onPickerChange = (
+  const onManagePickerChange = (
     event: DateTimePickerEvent,
     selected?: Date
   ) => {
-    if (!editTarget) return;
+    if (!managePicker) return;
     if (event.type === 'dismissed' || !selected) {
-      setEditTarget(null);
-      setEditingPart('date');
+      setManagePicker(null);
+      setManagePickerPart('date');
       return;
     }
 
-    const current = editTarget === 'start' ? startDate : endDate;
+    const current = managePicker === 'start' ? editStart : editEnd;
     const next = new Date(current);
     next.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
     next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
 
-    if (editTarget === 'start') setStartDate(next);
-    else setEndDate(next);
+    if (managePicker === 'start') setEditStart(next);
+    else setEditEnd(next);
 
-    if (isAndroid && editingPart === 'date') {
-      setEditingPart('time');
+    if (Platform.OS === 'android' && managePickerPart === 'date') {
+      setManagePickerPart('time');
     } else {
-      setEditTarget(null);
-      setEditingPart('date');
+      setManagePicker(null);
+      setManagePickerPart('date');
     }
   };
 
-  const handleQuickEnd = (ms: number) => {
-    setMessage(null);
-    setEndDate(new Date(startDate.getTime() + ms));
-  };
-
-  const handleCreateEvent = () => {
-    const event = {
-      eventId: eventId.trim(),
-      title: title.trim(),
-      start: toLocalISO(startDate),
-      end: toLocalISO(endDate),
-    };
-
-    if (!event.eventId || !event.title) {
-      setMessage('Event title and code are required.');
+  const saveManageEdit = () => {
+    if (!editing) return;
+    setManageMessage(null);
+    if (!editTitle.trim()) {
+      setManageMessage('Event name is required.');
       return;
     }
-
-    if (endDate.getTime() <= startDate.getTime()) {
-      setMessage('End time must be after start time.');
+    if (editEnd.getTime() <= editStart.getTime()) {
+      setManageMessage('End time must be after start time.');
       return;
     }
-
-    createEvent(event).then(({ error }) => {
+    updateEvent(editing.id, {
+      title: editTitle.trim(),
+      start_time: toIsoString(editStart),
+      end_time: toIsoString(editEnd),
+      venue: editVenue.trim(),
+      description: editDescription.trim(),
+    }).then(({ error }) => {
       if (error) {
-        setMessage('Could not save the event. Please try again.');
+        setManageMessage('Could not save the changes. Please try again.');
         return;
       }
-      setMessage('Event saved. Show the QR below.');
-      setPayload(buildQRPayload(event));
+      setManageMessage(`Updated "${editTitle.trim()}".`);
+      setEditing(null);
+      setManagePicker(null);
+      setEventsVersion((v) => v + 1);
+      if (payload && payloadCode === editing.event_code) {
+        setPayloadCode(editing.event_code);
+        setPayload(
+          buildQRPayload({
+            eventId: editing.event_code,
+            title: editTitle.trim(),
+            start: toIsoString(editStart),
+            end: toIsoString(editEnd),
+          })
+        );
+      }
     });
   };
 
-  const messageIsSuccess = message?.startsWith('Event saved') ?? false;
+  const handleShowQR = (event: CloudEvent) => {
+    setManageMessage(null);
+    setPayloadCode(event.event_code);
+    setPayload(
+      buildQRPayload({
+        eventId: event.event_code,
+        title: event.title,
+        start: event.start_time ?? undefined,
+        end: event.end_time ?? undefined,
+      })
+    );
+  };
+
+  // "Close an event" — a closed event refuses new attendance.
+  const handleToggleClosed = (event: CloudEvent) => {
+    const closing = event.status !== 'closed';
+    setManageMessage(null);
+    setEventStatus(event.id, closing ? 'closed' : 'open').then(({ error }) => {
+      if (error) {
+        setManageMessage(error);
+        return;
+      }
+      setManageMessage(
+        closing
+          ? `"${event.title}" is closed. Students can no longer record attendance.`
+          : `"${event.title}" was reopened.`
+      );
+      setEventsVersion((v) => v + 1);
+    });
+  };
+
+  const handleDeleteEvent = (event: CloudEvent) => {
+    setManageMessage(null);
+    Alert.alert(
+      'Delete event',
+      `Delete "${event.title}"? Its attendance records will also be removed.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteEvent(event.id).then(({ error }) => {
+              if (error) {
+                setManageMessage('Could not delete the event. Please try again.');
+                return;
+              }
+              setManageMessage(`Deleted "${event.title}".`);
+              if (payload && payloadCode === event.event_code) {
+                setPayload(null);
+                setPayloadCode(null);
+              }
+              if (editing?.id === event.id) setEditing(null);
+              setEventsVersion((v) => v + 1);
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  const messageIsError = manageMessage?.startsWith('Could') ?? false;
+  const messageIsRawError = manageMessage
+    ? /sql\/|policy|column/i.test(manageMessage)
+    : false;
 
   return (
     <View style={styles.container}>
@@ -177,114 +274,20 @@ export default function TeacherScreen() {
           </View>
         </View>
 
-        <View style={styles.formCard}>
-          <View style={styles.formHeader}>
-            <Text style={styles.formTitle}>Event details</Text>
-          </View>
-
-          <Text style={styles.label}>Event title</Text>
-          <View style={styles.inputShell}>
-            <Ionicons name="bookmark-outline" size={18} color={COLORS.textTertiary} />
-            <TextInput
-              style={styles.input}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="e.g. Founders Day Assembly"
-              placeholderTextColor={COLORS.textTertiary}
-              autoCapitalize="sentences"
-            />
-          </View>
-
-          <Text style={styles.label}>Event code</Text>
-          <View style={styles.inputShell}>
-            <Ionicons name="pricetag-outline" size={18} color={COLORS.textTertiary} />
-            <TextInput
-              style={styles.input}
-              value={eventId}
-              onChangeText={setEventId}
-              placeholder="e.g. EVT-2026-0002"
-              placeholderTextColor={COLORS.textTertiary}
-              autoCapitalize="characters"
-              autoCorrect={false}
-            />
-          </View>
-
-          <Text style={styles.label}>Starts</Text>
-          <PickerField
-            value={formatDateTime(startDate)}
-            icon="sunny-outline"
-            onPress={() => openPicker('start')}
-          />
-
-          <Text style={styles.label}>Ends</Text>
-          <PickerField
-            value={formatDateTime(endDate)}
-            icon="moon-outline"
-            onPress={() => openPicker('end')}
-          />
-
-          <View style={styles.quickHeader}>
-            <Text style={styles.quickTitle}>Quick duration</Text>
-          </View>
-          <View style={styles.chipRow}>
-            {QUICK_END_OPTIONS.map((option) => (
-              <Pressable
-                key={option.label}
-                accessibilityRole="button"
-                style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
-                onPress={() => handleQuickEnd(option.ms)}
-              >
-                <Ionicons name="time-outline" size={14} color={COLORS.primaryDark} />
-                <Text style={styles.chipText}>{option.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          {message ? (
-            <View
-              style={[
-                styles.messageBox,
-                messageIsSuccess ? styles.messageSuccess : styles.messageError,
-              ]}
-              accessibilityRole="alert"
-            >
-              <Ionicons
-                name={messageIsSuccess ? 'checkmark-circle-outline' : 'alert-circle-outline'}
-                size={17}
-                color={messageIsSuccess ? COLORS.success : COLORS.danger}
-              />
-              <Text
-                style={[
-                  styles.messageText,
-                  messageIsSuccess ? styles.messageSuccessText : styles.messageErrorText,
-                ]}
-              >
-                {message}
-              </Text>
-            </View>
-          ) : null}
-
-          <View style={styles.submitBlock}>
-            <AppButton
-              theme="primary"
-              title="Create event"
-              icon="add-circle-outline"
-              onPress={handleCreateEvent}
-              spaced={false}
-            />
-          </View>
-
-          {editTarget ? (
-            <View style={styles.pickerContainer}>
-              <DateTimePicker
-                value={editTarget === 'start' ? startDate : endDate}
-                mode={isAndroid ? editingPart : 'datetime'}
-                display={isAndroid ? 'default' : 'spinner'}
-                onChange={onPickerChange}
-              />
-            </View>
-          ) : null}
-        </View>
+        <EventCreateCard
+          onCreated={(created) => {
+            setPayloadCode(created.eventId.toUpperCase());
+            setPayload(
+              buildQRPayload({
+                eventId: created.eventId,
+                title: created.title,
+                start: created.start,
+                end: created.end,
+              })
+            );
+            setEventsVersion((v) => v + 1);
+          }}
+        />
 
         {payload ? (
           <View style={styles.resultCard}>
@@ -306,32 +309,338 @@ export default function TeacherScreen() {
             </View>
             <View style={styles.readyPill}>
               <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
-              <Text style={styles.readyText}>{eventId.trim().toUpperCase()}</Text>
+              <Text style={styles.readyText}>{payloadCode ?? ''}</Text>
             </View>
           </View>
         ) : null}
+
+        <View style={styles.sectionHeading}>
+          <View style={styles.sectionHeadingCopy}>
+            <Text style={styles.sectionTitle}>Manage my events</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Refresh events"
+            style={({ pressed }) => [styles.refreshButton, pressed && styles.refreshPressed]}
+            onPress={() => setEventsVersion((v) => v + 1)}
+          >
+            <Ionicons name="refresh-outline" size={18} color={COLORS.primaryDark} />
+          </Pressable>
+        </View>
+
+        {manageMessage ? (
+          <View
+            style={[
+              styles.messageBox,
+              messageIsError || messageIsRawError
+                ? styles.messageError
+                : styles.messageSuccess,
+            ]}
+            accessibilityRole="alert"
+          >
+            <Ionicons
+              name={
+                messageIsError || messageIsRawError
+                  ? 'alert-circle-outline'
+                  : 'checkmark-circle-outline'
+              }
+              size={17}
+              color={
+                messageIsError || messageIsRawError ? COLORS.danger : COLORS.success
+              }
+            />
+            <Text
+              style={[
+                styles.messageText,
+                messageIsError || messageIsRawError
+                  ? styles.messageErrorText
+                  : styles.messageSuccessText,
+              ]}
+            >
+              {manageMessage}
+            </Text>
+          </View>
+        ) : null}
+
+        {eventsLoading ? (
+          <View style={styles.manageLoading}>
+            <ActivityIndicator color={COLORS.primaryDark} size="small" />
+            <Text style={styles.manageLoadingText}>Loading your events...</Text>
+          </View>
+        ) : myEvents.length === 0 ? (
+          <View style={styles.manageEmpty}>
+            <Ionicons name="calendar-outline" size={22} color={COLORS.textTertiary} />
+            <Text style={styles.manageEmptyText}>
+              You have no events yet. Create one above.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.manageList}>
+            {myEvents.map((event) => {
+              const phase = getEventPhase(event);
+              const pillStyles =
+                phase === 'ongoing'
+                  ? styles.statusOngoing
+                  : phase === 'upcoming'
+                    ? styles.statusUpcoming
+                    : phase === 'closed'
+                      ? styles.statusClosed
+                      : styles.statusEnded;
+              const pillTextStyles =
+                phase === 'ongoing'
+                  ? styles.statusOngoingText
+                  : phase === 'upcoming'
+                    ? styles.statusUpcomingText
+                    : phase === 'closed'
+                      ? styles.statusClosedText
+                      : styles.statusEndedText;
+              const isEditing = editing?.id === event.id;
+              const showDetails = detailsId === event.id;
+              const isClosed = phase === 'closed';
+              return (
+                <View key={event.id} style={styles.manageCard}>
+                  <View style={styles.manageHeader}>
+                    <View style={styles.manageCopy}>
+                      <Text style={styles.manageTitle} numberOfLines={1}>
+                        {event.title}
+                      </Text>
+                      <View style={styles.manageCodeRow}>
+                        <Ionicons name="pricetag-outline" size={13} color={COLORS.textTertiary} />
+                        <Text style={styles.manageCode}>{event.event_code}</Text>
+                      </View>
+                    </View>
+                    <View style={[styles.statusPill, pillStyles]}>
+                      <Text style={[styles.statusPillText, pillTextStyles]}>
+                        {PHASE_LABEL[phase]}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.manageWindow}>{formatEventWindow(event)}</Text>
+
+                  {event.venue ? (
+                    <View style={styles.manageMetaRow}>
+                      <Ionicons name="location-outline" size={13} color={COLORS.textTertiary} />
+                      <Text style={styles.manageMetaText} numberOfLines={1}>
+                        {event.venue}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  <Pressable
+                    accessibilityRole="button"
+                    style={({ pressed }) => [
+                      styles.detailsToggle,
+                      pressed && styles.detailsTogglePressed,
+                    ]}
+                    onPress={() => setDetailsId(showDetails ? null : event.id)}
+                  >
+                    <Text style={styles.detailsToggleText}>
+                      {showDetails ? 'Hide details' : 'View details'}
+                    </Text>
+                    <Ionicons
+                      name={showDetails ? 'chevron-up' : 'chevron-down'}
+                      size={15}
+                      color={COLORS.primaryDark}
+                    />
+                  </Pressable>
+
+                  {showDetails ? (
+                    <View style={styles.detailsCard}>
+                      <DetailRow icon="bookmark-outline" label="Event name" value={event.title} />
+                      <DetailRow
+                        icon="calendar-outline"
+                        label="Date & time"
+                        value={formatEventWindow(event)}
+                      />
+                      <DetailRow
+                        icon="location-outline"
+                        label="Venue"
+                        value={event.venue?.trim() || 'Not set'}
+                      />
+                      <DetailRow
+                        icon="document-text-outline"
+                        label="Description"
+                        value={event.description?.trim() || 'Not set'}
+                      />
+                      <DetailRow
+                        icon="flag-outline"
+                        label="Status"
+                        value={isClosed ? 'Closed' : PHASE_LABEL[phase]}
+                      />
+                    </View>
+                  ) : null}
+
+                  <View style={styles.manageActions}>
+                    <View style={styles.manageActionItem}>
+                      <AppButton
+                        compact
+                        spaced={false}
+                        title="QR"
+                        icon="qr-code-outline"
+                        onPress={() => handleShowQR(event)}
+                      />
+                    </View>
+                    <View style={styles.manageActionItem}>
+                      <AppButton
+                        compact
+                        spaced={false}
+                        title={isEditing ? 'Close' : 'Edit'}
+                        icon={isEditing ? 'close-outline' : 'create-outline'}
+                        onPress={() => (isEditing ? setEditing(null) : openManageEdit(event))}
+                      />
+                    </View>
+                    <View style={styles.manageActionItem}>
+                      <AppButton
+                        compact
+                        spaced={false}
+                        title={isClosed ? 'Reopen' : 'Close'}
+                        icon={isClosed ? 'lock-open-outline' : 'lock-closed-outline'}
+                        onPress={() => handleToggleClosed(event)}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.manageActions}>
+                    <View style={styles.manageActionItem}>
+                      <AppButton
+                        compact
+                        spaced={false}
+                        variant="danger"
+                        title="Delete event"
+                        icon="trash-outline"
+                        onPress={() => handleDeleteEvent(event)}
+                      />
+                    </View>
+                  </View>
+
+                  {isEditing ? (
+                    <View style={styles.editCard}>
+                      <Text style={styles.label}>Event name</Text>
+                      <View style={styles.inputShell}>
+                        <Ionicons name="bookmark-outline" size={18} color={COLORS.textTertiary} />
+                        <TextInput
+                          style={styles.input}
+                          value={editTitle}
+                          onChangeText={setEditTitle}
+                          placeholder="Event name"
+                          placeholderTextColor={COLORS.textTertiary}
+                          autoCapitalize="sentences"
+                        />
+                      </View>
+
+                      <Text style={styles.label}>Venue</Text>
+                      <View style={styles.inputShell}>
+                        <Ionicons name="location-outline" size={18} color={COLORS.textTertiary} />
+                        <TextInput
+                          style={styles.input}
+                          value={editVenue}
+                          onChangeText={setEditVenue}
+                          placeholder="Venue"
+                          placeholderTextColor={COLORS.textTertiary}
+                          autoCapitalize="words"
+                        />
+                      </View>
+
+                      <Text style={styles.label}>Description</Text>
+                      <View style={[styles.inputShell, styles.descriptionShell]}>
+                        <TextInput
+                          style={[styles.input, styles.descriptionInput]}
+                          value={editDescription}
+                          onChangeText={setEditDescription}
+                          placeholder="What is this event about?"
+                          placeholderTextColor={COLORS.textTertiary}
+                          multiline
+                          textAlignVertical="top"
+                        />
+                      </View>
+
+                      <Text style={styles.label}>Starts</Text>
+                      <PickerField
+                        value={formatDateTime(editStart)}
+                        icon="sunny-outline"
+                        onPress={() => {
+                          setManageMessage(null);
+                          setManagePicker('start');
+                          setManagePickerPart('date');
+                        }}
+                      />
+
+                      <Text style={styles.label}>Ends</Text>
+                      <PickerField
+                        value={formatDateTime(editEnd)}
+                        icon="moon-outline"
+                        onPress={() => {
+                          setManageMessage(null);
+                          setManagePicker('end');
+                          setManagePickerPart('date');
+                        }}
+                      />
+
+                      {managePicker ? (
+                        <View style={styles.pickerContainer}>
+                          <DateTimePicker
+                            value={managePicker === 'start' ? editStart : editEnd}
+                            mode={Platform.OS === 'android' ? managePickerPart : 'datetime'}
+                            display={Platform.OS === 'android' ? 'default' : 'spinner'}
+                            onChange={onManagePickerChange}
+                          />
+                        </View>
+                      ) : null}
+
+                      <View style={styles.editActions}>
+                        <View style={styles.editActionItem}>
+                          <AppButton
+                            compact
+                            spaced={false}
+                            title="Cancel"
+                            icon="close-outline"
+                            onPress={() => {
+                              setEditing(null);
+                              setManagePicker(null);
+                            }}
+                          />
+                        </View>
+                        <View style={styles.editActionItem}>
+                          <AppButton
+                            compact
+                            spaced={false}
+                            variant="primary"
+                            title="Save"
+                            icon="checkmark-outline"
+                            onPress={saveManageEdit}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
 }
 
-type PickerFieldProps = {
-  value: string;
+type DetailRowProps = {
   icon: keyof typeof Ionicons.glyphMap;
-  onPress: () => void;
+  label: string;
+  value: string;
 };
 
-function PickerField({ value, icon, onPress }: PickerFieldProps) {
+function DetailRow({ icon, label, value }: DetailRowProps) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      style={({ pressed }) => [styles.pickerField, pressed && styles.pickerFieldPressed]}
-      onPress={onPress}
-    >
-      <Ionicons name={icon} size={19} color={COLORS.primaryDark} />
-      <Text style={styles.pickerValue}>{value}</Text>
-      <Ionicons name="calendar-outline" size={18} color={COLORS.textTertiary} />
-    </Pressable>
+    <View style={styles.detailRow}>
+      <View style={styles.detailIcon}>
+        <Ionicons name={icon} size={15} color={COLORS.primaryDark} />
+      </View>
+      <View style={styles.detailCopy}>
+        <Text style={styles.detailLabel}>{label}</Text>
+        <Text style={styles.detailValue}>{value}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -350,6 +659,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSecondary,
     marginTop: 12,
+    textAlign: 'center',
   },
   lockedCard: {
     width: '100%',
@@ -407,29 +717,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  formCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 18,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.07,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 4,
-  },
-  formHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingBottom: 5,
-  },
-  formTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: COLORS.textPrimary,
-  },
   label: {
     fontSize: 12,
     fontWeight: '800',
@@ -447,6 +734,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  descriptionShell: {
+    minHeight: 88,
+    alignItems: 'flex-start',
+  },
   input: {
     flex: 1,
     minHeight: 50,
@@ -455,63 +746,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.textPrimary,
   },
-  pickerField: {
-    minHeight: 54,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  pickerFieldPressed: {
-    backgroundColor: COLORS.primarySoft,
-    borderColor: COLORS.primaryDark,
-  },
-  pickerValue: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginHorizontal: 10,
-  },
-  quickHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 19,
-    marginBottom: 8,
-  },
-  quickTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.textSecondary,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  chip: {
-    flex: 1,
-    minHeight: 36,
-    borderRadius: 11,
-    backgroundColor: COLORS.mint,
-    borderWidth: 1,
-    borderColor: COLORS.borderStrong,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipPressed: {
-    backgroundColor: COLORS.primarySoft,
-    borderColor: COLORS.primaryDark,
-  },
-  chipText: {
-    fontSize: 11.5,
-    fontWeight: '800',
-    color: COLORS.primaryDark,
-    marginLeft: 5,
+  descriptionInput: {
+    minHeight: 84,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   messageBox: {
     flexDirection: 'row',
@@ -538,14 +776,6 @@ const styles = StyleSheet.create({
   },
   messageErrorText: {
     color: COLORS.danger,
-  },
-  submitBlock: {
-    width: '100%',
-    marginTop: 20,
-  },
-  pickerContainer: {
-    alignItems: 'center',
-    marginTop: 20,
   },
   resultCard: {
     backgroundColor: COLORS.card,
@@ -609,5 +839,241 @@ const styles = StyleSheet.create({
     letterSpacing: 0.7,
     color: COLORS.success,
     marginLeft: 6,
+  },
+  sectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 22,
+    marginBottom: 13,
+  },
+  sectionHeadingCopy: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  refreshButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refreshPressed: {
+    backgroundColor: COLORS.primarySoft,
+  },
+  manageLoading: {
+    minHeight: 70,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  manageLoadingText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
+  manageEmpty: {
+    minHeight: 76,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  manageEmptyText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  manageList: {
+    gap: 10,
+  },
+  manageCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    padding: 14,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 3,
+  },
+  manageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  manageCopy: {
+    flex: 1,
+  },
+  manageTitle: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  manageCodeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 4,
+  },
+  manageCode: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    color: COLORS.textSecondary,
+  },
+  manageWindow: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginTop: 8,
+  },
+  manageMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 6,
+  },
+  manageMetaText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  detailsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
+  detailsTogglePressed: {
+    opacity: 0.7,
+  },
+  detailsToggleText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primaryDark,
+  },
+  detailsCard: {
+    marginTop: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    padding: 12,
+    gap: 10,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 9,
+  },
+  detailIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 9,
+    backgroundColor: COLORS.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailCopy: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    color: COLORS.textTertiary,
+  },
+  detailValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginTop: 2,
+  },
+  manageActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  manageActionItem: {
+    flex: 1,
+  },
+  editCard: {
+    marginTop: 14,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+  },
+  editActionItem: {
+    flex: 1,
+  },
+  pickerContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  statusPill: {
+    borderRadius: 9,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderWidth: 1,
+  },
+  statusPillText: {
+    fontSize: 10.5,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+  },
+  statusOngoing: {
+    backgroundColor: COLORS.successSoft,
+    borderColor: COLORS.success,
+  },
+  statusOngoingText: {
+    color: COLORS.success,
+  },
+  statusUpcoming: {
+    backgroundColor: COLORS.warningSoft,
+    borderColor: COLORS.warning,
+  },
+  statusUpcomingText: {
+    color: COLORS.warning,
+  },
+  statusEnded: {
+    backgroundColor: COLORS.surfaceMuted,
+    borderColor: COLORS.border,
+  },
+  statusEndedText: {
+    color: COLORS.textTertiary,
+  },
+  statusClosed: {
+    backgroundColor: COLORS.dangerSoft,
+    borderColor: COLORS.danger,
+  },
+  statusClosedText: {
+    color: COLORS.danger,
   },
 });

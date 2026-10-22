@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { COLORS } from '@/constants/colors';
+import { useRole } from '@/lib/useRole';
 
 type TabIconProps = {
   name: keyof typeof Ionicons.glyphMap;
@@ -20,6 +21,8 @@ function TabIcon({ name, outline, color, focused }: TabIconProps) {
 }
 
 export default function TabLayout() {
+  const { role } = useRole();
+
   return (
     <Tabs
       screenOptions={{
@@ -65,6 +68,21 @@ export default function TabLayout() {
           title: 'Teacher',
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name="school" outline="school-outline" color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'Admin',
+          href: role === 'admin' ? undefined : null,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              name="shield-checkmark"
+              outline="shield-checkmark-outline"
+              color={color}
+              focused={focused}
+            />
           ),
         }}
       />

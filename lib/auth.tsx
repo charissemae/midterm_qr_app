@@ -66,7 +66,7 @@ export function useAuth(): AuthState {
 
 export type SignUpProfile = {
   full_name: string;
-  role: 'student' | 'teacher';
+  role: 'student' | 'teacher' | 'admin';
 };
 
 export async function signUp(
@@ -74,7 +74,16 @@ export async function signUp(
   password: string,
   profile?: SignUpProfile
 ) {
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    // The chosen role also travels in the signup metadata so the database
+    // trigger can apply it even when email confirmation is required (no
+    // session yet, so the PATCH below cannot run).
+    options: profile
+      ? { data: { full_name: profile.full_name, role: profile.role } }
+      : undefined,
+  });
 
   if (!error && data.session && profile) {
     // The signup trigger creates the profile row; fill in the name and role
@@ -158,10 +167,14 @@ export async function signUp(
     // Surface profile-saving failures instead of silently keeping the
     // trigger's default 'student' row.
     if (profileError) {
+      const hint =
+        profile.role === 'admin'
+          ? ' Tip: run sql/admin_setup.sql in Supabase once so the admin role is allowed.'
+          : '';
       return {
         data,
         error: {
-          message: `Account created, but saving your name/role failed (${profileError}). You can still sign in and update your name in the Profile tab.`,
+          message: `Account created, but saving your name/role failed (${profileError}). You can still sign in and update your name in the Profile tab.${hint}`,
         },
       };
     }

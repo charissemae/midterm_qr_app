@@ -34,7 +34,7 @@ export default function ScanScreen() {
     );
   }
 
-  if (role === 'teacher') {
+  if (role !== 'student') {
     return (
       <View style={styles.container}>
         <Header title="Scan" />
