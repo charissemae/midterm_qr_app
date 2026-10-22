@@ -3,7 +3,11 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
+<<<<<<< HEAD
     "start": "expo start --web",
+=======
+    "start": "expo start",
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web"

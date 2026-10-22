@@ -60,9 +60,12 @@ export type EventStat = {
   eventCode: string;
   title: string;
   attendeeCount: number;
+<<<<<<< HEAD
   presentCount: number;
   lateCount: number;
   absentCount: number;
+=======
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
 };
 
 export type SystemStats = {
@@ -82,7 +85,11 @@ export async function getSystemStats(): Promise<SystemStats | null> {
 
     const { data: attendance, error: attendanceError } = await supabase
       .from('attendance')
+<<<<<<< HEAD
       .select('event_id, scanned_at, status');
+=======
+      .select('event_id, scanned_at');
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
 
     if (attendanceError) return null;
 
@@ -91,6 +98,7 @@ export async function getSystemStats(): Promise<SystemStats | null> {
     startOfDay.setHours(0, 0, 0, 0);
 
     const counts: Record<string, number> = {};
+<<<<<<< HEAD
     const breakdown: Record<string, { present: number; late: number; absent: number }> = {};
     let todayAttendance = 0;
     rows.forEach((row: any) => {
@@ -102,6 +110,11 @@ export async function getSystemStats(): Promise<SystemStats | null> {
       if (st === 'present') breakdown[row.event_id].present += 1;
       else if (st === 'late') breakdown[row.event_id].late += 1;
       else if (st === 'absent') breakdown[row.event_id].absent += 1;
+=======
+    let todayAttendance = 0;
+    rows.forEach((row: any) => {
+      counts[row.event_id] = (counts[row.event_id] ?? 0) + 1;
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
       if (row.scanned_at && new Date(row.scanned_at).getTime() >= startOfDay.getTime()) {
         todayAttendance += 1;
       }
@@ -113,9 +126,12 @@ export async function getSystemStats(): Promise<SystemStats | null> {
         eventCode: event.event_code,
         title: event.title,
         attendeeCount: counts[event.id] ?? 0,
+<<<<<<< HEAD
         presentCount: breakdown[event.id]?.present ?? 0,
         lateCount: breakdown[event.id]?.late ?? 0,
         absentCount: breakdown[event.id]?.absent ?? 0,
+=======
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
       }))
       .sort((a, b) => b.attendeeCount - a.attendeeCount);
 

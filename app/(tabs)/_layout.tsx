@@ -48,7 +48,10 @@ export default function TabLayout() {
         name="scan"
         options={{
           title: 'Scan',
+<<<<<<< HEAD
           href: role === 'admin' ? null : undefined,
+=======
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name="scan" outline="scan-outline" color={color} focused={focused} />
           ),
@@ -67,7 +70,10 @@ export default function TabLayout() {
         name="teacher"
         options={{
           title: 'Teacher',
+<<<<<<< HEAD
           href: role === 'admin' ? null : undefined,
+=======
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name="school" outline="school-outline" color={color} focused={focused} />
           ),

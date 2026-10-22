@@ -50,7 +50,10 @@ export default function HistoryScreen() {
   const { role, loading: roleLoading } = useRole();
   const activeRole = role ?? 'student';
   const isTeacher = activeRole === 'teacher';
+<<<<<<< HEAD
   const isAdmin = activeRole === 'admin';
+=======
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
   const [studentRecords, setStudentRecords] = useState<AttendanceRecord[]>([]);
   const [teacherEvents, setTeacherEvents] = useState<TeacherEventAttendance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +63,7 @@ export default function HistoryScreen() {
   const reload = useCallback(async () => {
     if (!user) return;
 
+<<<<<<< HEAD
     if (isAdmin) {
       const { getAllAttendance } = await import('@/lib/attendance');
       const all = await getAllAttendance();
@@ -75,6 +79,9 @@ export default function HistoryScreen() {
       setStudentRecords(mapped);
       setTeacherEvents([]);
     } else if (isTeacher) {
+=======
+    if (isTeacher) {
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
       const events = await getTeacherEventAttendance(user.id);
       setTeacherEvents(events);
       setStudentRecords([]);
@@ -83,7 +90,11 @@ export default function HistoryScreen() {
       setStudentRecords(records);
       setTeacherEvents([]);
     }
+<<<<<<< HEAD
   }, [user, isTeacher, isAdmin]);
+=======
+  }, [user, isTeacher]);
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
 
   const load = useCallback(async () => {
     if (!user) {
@@ -128,6 +139,7 @@ export default function HistoryScreen() {
         <View style={styles.summaryRow}>
           <View style={styles.summaryCopy}>
             <Text style={styles.summarySubtitle}>
+<<<<<<< HEAD
               {isAdmin
                 ? `All attendance • ${studentRecords.length} record${studentRecords.length === 1 ? '' : 's'}`
                 : isTeacher
@@ -138,10 +150,21 @@ export default function HistoryScreen() {
           <View style={[styles.roleBadge, isAdmin ? styles.teacherBadge : isTeacher ? styles.teacherBadge : styles.studentBadge]}>
             <Text style={[styles.roleBadgeText, isAdmin ? styles.teacherBadgeText : isTeacher ? styles.teacherBadgeText : styles.studentBadgeText]}>
               {isAdmin ? 'Admin' : isTeacher ? 'Teacher' : 'Student'}
+=======
+              {isTeacher
+                ? `${teacherEvents.length} event${teacherEvents.length === 1 ? '' : 's'}`
+                : `${studentRecords.length} scan${studentRecords.length === 1 ? '' : 's'}`}
+            </Text>
+          </View>
+          <View style={[styles.roleBadge, isTeacher ? styles.teacherBadge : styles.studentBadge]}>
+            <Text style={[styles.roleBadgeText, isTeacher ? styles.teacherBadgeText : styles.studentBadgeText]}>
+              {isTeacher ? 'Teacher' : 'Student'}
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
             </Text>
           </View>
         </View>
 
+<<<<<<< HEAD
         {isAdmin ? (
           studentRecords.length === 0 ? (
             <EmptyState
@@ -190,6 +213,9 @@ export default function HistoryScreen() {
             />
           )
         ) : isTeacher ? (
+=======
+        {isTeacher ? (
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
           teacherEvents.length === 0 ? (
             <EmptyState
               icon="calendar-outline"
@@ -280,7 +306,11 @@ export default function HistoryScreen() {
               }}
             />
           )
+<<<<<<< HEAD
         ) : isAdmin ? null : studentRecords.length === 0 ? (
+=======
+        ) : studentRecords.length === 0 ? (
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
           <EmptyState
             icon="scan-outline"
             title="No attendance yet"

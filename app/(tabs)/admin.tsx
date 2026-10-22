@@ -1182,7 +1182,10 @@ function AttendanceSection() {
 
 function ReportsSection() {
   const [stats, setStats] = useState<SystemStats | null>(null);
+<<<<<<< HEAD
   const [allAttendance, setAllAttendance] = useState<AdminAttendanceRecord[]>([]);
+=======
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
   const [recent, setRecent] = useState<AdminAttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [version, setVersion] = useState(0);
@@ -1193,7 +1196,10 @@ function ReportsSection() {
     Promise.all([getSystemStats(), getAllAttendance()]).then(([nextStats, rows]) => {
       if (!active) return;
       setStats(nextStats);
+<<<<<<< HEAD
       setAllAttendance(rows);
+=======
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
       setRecent(rows.slice(0, 5));
       setLoading(false);
     });
@@ -1213,6 +1219,7 @@ function ReportsSection() {
     );
   }
 
+<<<<<<< HEAD
   const totalPresent = allAttendance.filter((r) => r.status === 'present').length;
   const totalLate = allAttendance.filter((r) => r.status === 'late').length;
   const totalAbsent = allAttendance.filter((r) => r.status === 'absent').length;
@@ -1222,13 +1229,20 @@ function ReportsSection() {
       : 0;
 
   const cards: { label: string; value: number | string; icon: keyof typeof Ionicons.glyphMap; tint: string }[] =
+=======
+  const cards: { label: string; value: number; icon: keyof typeof Ionicons.glyphMap; tint: string }[] =
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
     [
       { label: 'Accounts', value: stats.totalUsers, icon: 'people-outline', tint: COLORS.sky },
       { label: 'Students', value: stats.students, icon: 'school-outline', tint: COLORS.matcha },
       { label: 'Teachers', value: stats.teachers, icon: 'person-outline', tint: COLORS.sakura },
       { label: 'Events', value: stats.totalEvents, icon: 'calendar-outline', tint: COLORS.mint },
       {
+<<<<<<< HEAD
         label: 'Total Scans',
+=======
+        label: 'Attendance',
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
         value: stats.totalAttendance,
         icon: 'list-outline',
         tint: COLORS.crystal,
@@ -1239,6 +1253,7 @@ function ReportsSection() {
         icon: 'today-outline',
         tint: COLORS.warningSoft,
       },
+<<<<<<< HEAD
       {
         label: 'Present',
         value: totalPresent,
@@ -1263,6 +1278,8 @@ function ReportsSection() {
         icon: 'bar-chart-outline',
         tint: COLORS.mint,
       },
+=======
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
     ];
 
   return (
@@ -1282,7 +1299,11 @@ function ReportsSection() {
         ))}
       </View>
 
+<<<<<<< HEAD
       <Text style={styles.blockTitle}>Attendance per event (System-wide)</Text>
+=======
+      <Text style={styles.blockTitle}>Attendance per event</Text>
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
       {stats.perEvent.length === 0 ? (
         <View style={styles.emptyCard}>
           <Ionicons name="bar-chart-outline" size={22} color={COLORS.textTertiary} />
@@ -1291,6 +1312,7 @@ function ReportsSection() {
       ) : (
         <View style={styles.list}>
           {stats.perEvent.map((item) => (
+<<<<<<< HEAD
             <View key={item.eventId} style={styles.rowCardBlock}>
               <View style={styles.rowCardTop}>
                 <View style={styles.rowCopy}>
@@ -1325,6 +1347,20 @@ function ReportsSection() {
                   </Text>
                   <Text style={styles.breakdownLabel}>Absent</Text>
                 </View>
+=======
+            <View key={item.eventId} style={styles.summaryRow}>
+              <View style={styles.rowCopy}>
+                <Text style={styles.rowTitle} numberOfLines={1}>
+                  {item.title}
+                </Text>
+                <Text style={styles.rowSub} numberOfLines={1}>
+                  {item.eventCode}
+                </Text>
+              </View>
+              <View style={styles.summaryCount}>
+                <Text style={styles.summaryCountValue}>{item.attendeeCount}</Text>
+                <Text style={styles.summaryCountLabel}>scans</Text>
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
               </View>
             </View>
           ))}
@@ -1918,6 +1954,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.textTertiary,
   },
+<<<<<<< HEAD
   perEventBreakdown: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -1938,6 +1975,8 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 2,
   },
+=======
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
   refreshWide: {
     marginTop: 20,
     minHeight: 48,

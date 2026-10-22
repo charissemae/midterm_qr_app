@@ -31,7 +31,11 @@ export default function RegisterScreen() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState('');
+<<<<<<< HEAD
   const [role, setRole] = useState<'student' | 'teacher'>('student');
+=======
+  const [role, setRole] = useState<'student' | 'teacher' | 'admin'>('student');
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
 
   const handleRegister = async () => {
     setError(null);
@@ -234,6 +238,34 @@ export default function RegisterScreen() {
                       Teacher
                     </Text>
                   </Pressable>
+<<<<<<< HEAD
+=======
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: role === 'admin' }}
+                    style={({ pressed }) => [
+                      styles.roleOption,
+                      role === 'admin' && styles.roleOptionActive,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={() => setRole('admin')}
+                    disabled={loading}
+                  >
+                    <Ionicons
+                      name="shield-checkmark-outline"
+                      size={18}
+                      color={role === 'admin' ? COLORS.primaryDark : COLORS.textTertiary}
+                    />
+                    <Text
+                      style={[
+                        styles.roleText,
+                        role === 'admin' && styles.roleTextActive,
+                      ]}
+                    >
+                      Admin
+                    </Text>
+                  </Pressable>
+>>>>>>> 34d7314829dca659d76651903eae3e86c709164b
                 </View>
 
                 {error ? (
